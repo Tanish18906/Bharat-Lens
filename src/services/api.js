@@ -97,9 +97,7 @@ export async function generateRAGResponse(userQuery, contextChunks, history = []
     })
     .join("\n\n");
 
-  const languageInstruction = lang === 'hi' 
-    ? "VERY IMPORTANT: You MUST respond entirely in the Hindi (हिन्दी) language, using Devanagari script. All scheme details, eligibility, and instructions must be in Hindi." 
-    : "Respond primarily in English. If the user writes in Hindi or a mix, answer in the same language.";
+  const languageInstruction = "VERY IMPORTANT: You MUST respond in the EXACT same language and script the user uses in their message. If they write in English, reply in English. If they write in pure Hindi (Devanagari script), reply in pure Hindi. If they write in Hinglish (Hindi words in English alphabet), reply in Hinglish.";
 
   const systemPrompt = `You are "Bharat Lens AI," a helpful and trusted assistant for Indian citizens seeking information about Central and Chhattisgarh state government schemes and benefits.
 
