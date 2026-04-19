@@ -4,12 +4,21 @@ import {
   ExternalLink, Info, Copy, CheckCheck, Phone,
 } from "lucide-react";
 import { verifyLink } from "../services/api";
+import { useLanguage } from "../LanguageContext";
+
+const SCAM_TIPS = [
+  { icon: "🔒", tipKey: "tip1" },
+  { icon: "📵", tipKey: "tip2" },
+  { icon: "🚫", tipKey: "tip3" },
+  { icon: "📞", tipKey: "tip4" },
+  { icon: "💸", tipKey: "tip5" },
+];
 
 const EXAMPLE_INPUTS = [
-  { label: "Official PM-KISAN Site",    value: "https://pmkisan.gov.in",                                    type: "URL" },
-  { label: "Suspicious Scheme SMS",    value: "Congratulations! Claim your ₹10,000 PM relief fund: bit.ly/pm-relief-2024", type: "SMS" },
-  { label: "Fake Aadhaar KYC",         value: "Urgent: Your Aadhaar is suspended. Verify KYC now: tinyurl.com/aadhar-kyc", type: "SMS" },
-  { label: "Ayushman Bharat Portal",   value: "https://pmjay.gov.in",                                       type: "URL" },
+  { labelKey: "exKisan",    value: "https://pmkisan.gov.in",                                    type: "URL" },
+  { labelKey: "exSms",    value: "Congratulations! Claim your ₹10,000 PM relief fund: bit.ly/pm-relief-2024", type: "SMS" },
+  { labelKey: "exKyc",         value: "Urgent: Your Aadhaar is suspended. Verify KYC now: tinyurl.com/aadhar-kyc", type: "SMS" },
+  { labelKey: "exAyushman",   value: "https://pmjay.gov.in",                                       type: "URL" },
 ];
 
 const VERDICT_CONFIG = {
@@ -19,26 +28,30 @@ const VERDICT_CONFIG = {
   yellow: { icon: "🔍", headerBg: "#F0F9FF", headerBorder: "#BAE6FD", textColor: "#075985", badgeBg: "#E0F2FE", barColor: "#0EA5E9" },
 };
 
-const SCAM_TIPS = [
-  { icon: "🔒", tip: "Real government sites always end in .gov.in or .nic.in" },
-  { icon: "📵", tip: "Government never asks for OTP or bank PIN via SMS/WhatsApp" },
-  { icon: "🚫", tip: "Shortened URLs (bit.ly, tinyurl) are major red flags" },
-  { icon: "📞", tip: "If in doubt, call the official helpline — never click the link" },
-  { icon: "💸", tip: "No government scheme asks for payment to 'release' your benefit" },
-];
-
 export default function Verify() {
+  const { t } = useLanguage();
   const [input,   setInput]   = useState("");
   const [result,  setResult]  = useState(null);
   const [copied,  setCopied]  = useState(false);
   const [checked, setChecked] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleVerify = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-    const res = verifyLink(input.trim());
-    setResult(res);
-    setChecked(true);
+    setLoading(true);
+    setTimeout(() => {
+      const res = verifyLink(input.trim());
+      setResult(res);
+      setChecked(true);
+      setLoading(false);
+    }, 800);
+  };
+
+  const handleClear = () => {
+    setInput("");
+    setResult(null);
+    setChecked(false);
   };
 
   const handleExample = (val) => {
@@ -57,7 +70,6 @@ export default function Verify() {
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 16px 100px" }}>
-      {/* ── Page Header ── */}
       <div style={{ textAlign: "center", marginBottom: 36 }}>
         <div style={{
           width: 64, height: 64, borderRadius: 18, margin: "0 auto 16px",
@@ -68,23 +80,20 @@ export default function Verify() {
           <ShieldCheck size={30} color="white" />
         </div>
         <h1 style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 800, marginBottom: 8, letterSpacing: "-0.5px" }}>
-          Scam & Link Checker
+          {t('verTitle')}
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: 15, lineHeight: 1.6, maxWidth: 500, margin: "0 auto" }}>
-          Paste any suspicious link or SMS message. We'll instantly check if it's a
-          verified government source or a known scam pattern.
+          {t('verSubtitle')}
         </p>
       </div>
 
-      {/* ── Input Form ── */}
       <div style={{
         background: "white", borderRadius: 20, padding: "24px",
         border: "1px solid var(--border)", boxShadow: "var(--shadow-md)",
         marginBottom: 24,
       }}>
-        {/* Type selector chips */}
         <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-          {[{ icon: Link2, label: "URL / Link" }, { icon: MessageSquare, label: "SMS / WhatsApp" }].map(({ icon: Icon, label }) => (
+          {[{ icon: Link2, label: t("verUrlLink") }, { icon: MessageSquare, label: t("verSmsWa") }].map(({ icon: Icon, label }) => (
             <div key={label} style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "6px 14px", borderRadius: 99,
@@ -101,7 +110,7 @@ export default function Verify() {
             <textarea
               value={input}
               onChange={e => { setInput(e.target.value); setResult(null); setChecked(false); }}
-              placeholder="Paste URL or SMS text here...&#10;e.g. https://pm-relief-fund.in/claim or &#10;&quot;Congratulations! Claim ₹10,000 at...&quot;"
+              placeholder={t('verInputPlaceholder')}
               rows={4}
               style={{
                 width: "100%", border: "2px solid var(--border)", borderRadius: 14,
@@ -127,33 +136,33 @@ export default function Verify() {
 
           <button
             type="submit"
-            disabled={!input.trim()}
+            disabled={loading || !input.trim()}
             style={{
               width: "100%", marginTop: 14, padding: "14px",
-              borderRadius: 12, border: "none", cursor: !input.trim() ? "not-allowed" : "pointer",
+              borderRadius: 12, border: "none", cursor: loading || !input.trim() ? "not-allowed" : "pointer",
               background: !input.trim()
                 ? "var(--border)"
                 : "linear-gradient(135deg, var(--india-green), #0F7A07)",
-              color: "white", fontWeight: 700, fontSize: 15,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: !input.trim() ? "none" : "0 4px 14px rgba(19,136,8,0.35)",
+              color: "white", fontWeight: 700, fontSize: 16,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              boxShadow: !input.trim() ? "none" : "0 8px 20px rgba(22, 163, 74, 0.3)",
               transition: "all 0.2s",
             }}
           >
-            <ShieldCheck size={18} />
-            Check Now
+            <ShieldCheck size={20} />
+            {loading ? t('verChecking') : t('verBtnCheck')}
           </button>
         </form>
 
         {/* Examples */}
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border-subtle)" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.5px", marginBottom: 8 }}>
-            TRY AN EXAMPLE
+            {t('verTryExample')}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {EXAMPLE_INPUTS.map(ex => (
               <button
-                key={ex.label}
+                key={ex.labelKey}
                 onClick={() => handleExample(ex.value)}
                 style={{
                   background: "none", border: "1px solid var(--border)", borderRadius: 8,
@@ -172,7 +181,7 @@ export default function Verify() {
                 }}>
                   {ex.type}
                 </span>
-                {ex.label}
+                {t(ex.labelKey)}
               </button>
             ))}
           </div>
@@ -208,8 +217,8 @@ export default function Verify() {
                 {result.verdict}
               </div>
               <div style={{ fontSize: 13, color: cfg.textColor, opacity: 0.8 }}>
-                {result.isGovDomain ? "✓ Verified .gov.in domain" : "Not a .gov.in domain"}
-                {result.isUrl && ` · Link detected`}
+                {result.isGovDomain ? t('verVerifiedGov') : t('verNotGov')}
+                {result.isUrl && t('verLinkDetected')}
               </div>
             </div>
             {/* Risk Score Gauge */}
@@ -218,7 +227,7 @@ export default function Verify() {
                 {result.riskScore}
               </div>
               <div style={{ fontSize: 10, color: cfg.textColor, opacity: 0.7, fontWeight: 600 }}>
-                RISK SCORE
+                {t('verRiskScore')}
               </div>
             </div>
           </div>
@@ -259,7 +268,7 @@ export default function Verify() {
             {result.flags.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.5px", marginBottom: 8 }}>
-                  DETECTED ISSUES
+                  {t('verIssues')}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {result.flags.map((f, i) => (
@@ -286,14 +295,15 @@ export default function Verify() {
                 <Phone size={16} color="#DC2626" style={{ marginTop: 2, flexShrink: 0 }} />
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 13, color: "#DC2626", marginBottom: 4 }}>
-                    Report This Scam
+                    {t('verReportScam')}
                   </div>
                   <div style={{ fontSize: 12, color: "#7B341E", lineHeight: 1.5 }}>
-                    Call Cyber Crime Helpline <strong>1930</strong> or visit{" "}
+                    {t('verCallHelpline').split("cybercrime.gov.in")[0]}
                     <a href="https://cybercrime.gov.in" target="_blank" rel="noopener noreferrer"
                       style={{ color: "#DC2626", fontWeight: 600 }}>
                       cybercrime.gov.in <ExternalLink size={10} style={{ verticalAlign: "middle" }} />
                     </a>
+                    {t('verCallHelpline').split("cybercrime.gov.in")[1]}
                   </div>
                 </div>
               </div>
@@ -309,26 +319,27 @@ export default function Verify() {
       }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
           <ShieldCheck size={18} color="var(--india-green)" />
-          How to Stay Safe Online
+          {t('verStaySafe')}
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {SCAM_TIPS.map(({ icon, tip }, i) => (
+          {SCAM_TIPS.map(({ icon, tipKey }, i) => (
             <div key={i} style={{
               display: "flex", gap: 12, alignItems: "flex-start",
               padding: "10px 12px", borderRadius: 10, background: "var(--bg)",
               border: "1px solid var(--border-subtle)",
             }}>
               <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
-              <p style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6, margin: 0 }}>{tip}</p>
+              <p style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6, margin: 0 }}>{t(tipKey)}</p>
             </div>
           ))}
         </div>
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border-subtle)", fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>
-          Cyber Crime Helpline: <strong>1930</strong> · Report at{" "}
+          {t('verFooter').split("cybercrime.gov.in")[0]}
           <a href="https://cybercrime.gov.in" target="_blank" rel="noopener noreferrer"
             style={{ color: "var(--india-green)", fontWeight: 600, textDecoration: "none" }}>
             cybercrime.gov.in
           </a>
+          {t('verFooter').split("cybercrime.gov.in")[1]}
         </div>
       </div>
     </div>

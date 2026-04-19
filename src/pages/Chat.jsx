@@ -6,17 +6,19 @@ import {
 } from "lucide-react";
 import { searchSchemes } from "../services/api";
 import { ChatShimmer, ThinkingDots } from "../components/ShimmerLoader";
+import { useLanguage } from "../LanguageContext";
 
 const SUGGESTED_QUESTIONS = [
-  { text: "How do I apply for Mahtari Vandan Yojana?",    emoji: "👩" },
-  { text: "PM Kisan ₹6,000 — am I eligible?",              emoji: "🌾" },
-  { text: "What documents do I need for Ayushman Bharat?", emoji: "🏥" },
-  { text: "How to get MUDRA loan for small business?",     emoji: "💼" },
-  { text: "Padhai Tuhar Dwar — how to access online classes?", emoji: "📚" },
-  { text: "What is the Godhan Nyay Yojana benefit?",       emoji: "🐄" },
+  { textKey: "sqMahtari", query: "How do I apply for Mahtari Vandan Yojana?", emoji: "👩" },
+  { textKey: "sqKisan", query: "PM Kisan ₹6,000 — am I eligible?", emoji: "🌾" },
+  { textKey: "sqAyushman", query: "What documents do I need for Ayushman Bharat?", emoji: "🏥" },
+  { textKey: "sqMudra", query: "How to get MUDRA loan for small business?", emoji: "💼" },
+  { textKey: "sqPadhai", query: "Padhai Tuhar Dwar — how to access online classes?", emoji: "📚" },
+  { textKey: "sqGodhan", query: "What is the Godhan Nyay Yojana benefit?", emoji: "🐄" },
 ];
 
 function MessageBubble({ msg, onCopy }) {
+  const { t } = useLanguage();
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
 
@@ -104,7 +106,7 @@ function MessageBubble({ msg, onCopy }) {
               }}
             >
               {copied ? <CheckCheck size={12} color="var(--india-green)" /> : <Copy size={12} />}
-              {copied ? "Copied" : "Copy"}
+              {copied ? t('chatCopied') : t('chatCopy')}
             </button>
           )}
         </div>
@@ -114,6 +116,7 @@ function MessageBubble({ msg, onCopy }) {
 }
 
 function ErrorMessage({ error, onRetry }) {
+  const { t } = useLanguage();
   return (
     <div style={{
       background: "#FFF5F5", border: "1px solid #FED7D7",
@@ -123,7 +126,7 @@ function ErrorMessage({ error, onRetry }) {
       <span style={{ fontSize: 18 }}>⚠️</span>
       <div style={{ flex: 1 }}>
         <div style={{ color: "#C53030", fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
-          Something went wrong
+          {t('chatErrorTitle')}
         </div>
         <div style={{ color: "#744210", fontSize: 12, lineHeight: 1.5, marginBottom: 8 }}>
           {error}
@@ -134,7 +137,7 @@ function ErrorMessage({ error, onRetry }) {
           color: "#C53030", fontSize: 12, fontWeight: 600,
           display: "flex", alignItems: "center", gap: 4,
         }}>
-          <RotateCcw size={12} /> Retry
+          <RotateCcw size={12} /> {t('chatRetry')}
         </button>
       </div>
     </div>
@@ -142,6 +145,7 @@ function ErrorMessage({ error, onRetry }) {
 }
 
 export default function Chat() {
+  const { lang, t } = useLanguage();
   const [searchParams] = useSearchParams();
   const initialQuery   = searchParams.get("q") || "";
 
@@ -186,7 +190,13 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const { answer, sources } = await searchSchemes(text);
+      // Pass the last 10 messages as history context for the AI
+      const historyContext = messages.slice(-10).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      const { answer, sources } = await searchSchemes(text, historyContext, lang);
       const assistantMsg = {
         role: "assistant",
         content: answer,
@@ -195,7 +205,7 @@ export default function Chat() {
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err) {
-      setError(err.message || "Failed to get a response. Check your API keys in .env.");
+      setError(err.message || t('chatErrorMsg'));
     } finally {
       setLoading(false);
     }
@@ -215,7 +225,7 @@ export default function Chat() {
   // Voice input (Web Speech API)
   const toggleVoice = () => {
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      alert("Voice input is not supported in this browser. Try Chrome.");
+      alert(t('chatVoiceNotSupported'));
       return;
     }
 
@@ -248,15 +258,7 @@ export default function Chat() {
   const isEmpty = messages.length === 0 && !loading;
 
   return (
-    <div style={{
-      maxWidth: 820,
-      margin: "0 auto",
-      padding: "0 16px",
-      display: "flex",
-      flexDirection: "column",
-      height: "calc(100svh - 130px)",
-      paddingBottom: 72, // mobile bottom nav
-    }}>
+    <div className="chat-container">
       {/* ── Header ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -271,10 +273,10 @@ export default function Chat() {
             <Sparkles size={18} color="var(--saffron)" />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text-heading)" }}>Bharat Lens AI</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text-heading)" }}>{t('chatAiTitle')}</div>
             <div style={{ fontSize: 11, color: "var(--india-green)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--india-green)", display: "inline-block" }} />
-              Online · 40 Schemes · RAG-Enabled
+              {t('chatAiStatus')}
             </div>
           </div>
         </div>
@@ -285,7 +287,7 @@ export default function Chat() {
             color: "var(--text-muted)", fontSize: 12, fontWeight: 500,
             display: "flex", alignItems: "center", gap: 4,
           }}>
-            <RotateCcw size={13} /> New Chat
+            <RotateCcw size={13} /> {t('chatNew')}
           </button>
         )}
       </div>
@@ -304,23 +306,22 @@ export default function Chat() {
               <Sparkles size={32} color="var(--saffron)" />
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: "var(--text-heading)" }}>
-              Ask me about any scheme
+              {t('chatEmptyTitle')}
             </h2>
             <p style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1.6, textAlign: "center", maxWidth: 400, marginBottom: 32 }}>
-              I can find eligibility criteria, application steps, required documents, and
-              helpline numbers for 40+ Central & Chhattisgarh government schemes.
+              {t('chatEmptySubtitle')}
             </p>
 
             {/* Suggested Questions Carousel */}
-            <div style={{ width: "100%", maxWidth: 600 }}>
+            <div style={{ width: "100%", maxWidth: 800 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.5px", marginBottom: 10, textAlign: "left" }}>
-                SUGGESTED QUESTIONS
+                {t('chatSuggested').toUpperCase()}
               </div>
               <div className="carousel-scroll">
                 {SUGGESTED_QUESTIONS.map((sq, i) => (
                   <button
                     key={i}
-                    onClick={() => handleSuggestion(sq.text)}
+                    onClick={() => handleSuggestion(sq.query)}
                     style={{
                       flexShrink: 0,
                       background: "white",
@@ -342,7 +343,7 @@ export default function Chat() {
                     onMouseOut={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
                   >
                     <span style={{ marginRight: 6 }}>{sq.emoji}</span>
-                    {sq.text}
+                    {t(sq.textKey)}
                   </button>
                 ))}
               </div>
@@ -369,7 +370,7 @@ export default function Chat() {
               boxShadow: "var(--shadow-xs)",
             }}>
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8, fontWeight: 500 }}>
-                🔍 Searching 40 schemes...
+                🔍 {t('chatVoiceListen')}
               </div>
               <ThinkingDots />
               <ChatShimmer />
@@ -418,7 +419,7 @@ export default function Chat() {
               onKeyDown={e => {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(e); }
               }}
-              placeholder="PM Kisan ke liye kaise apply karein? (Hindi/English)"
+              placeholder={t('chatInputPlaceholder')}
               rows={1}
               style={{
                 width: "100%",
@@ -460,7 +461,7 @@ export default function Chat() {
           </button>
         </form>
         <div style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", marginTop: 8 }}>
-          Press <kbd style={{ padding: "2px 5px", borderRadius: 4, border: "1px solid var(--border)", fontSize: 10 }}>Enter</kbd> to send · Shift+Enter for new line · Voice in Hindi/English
+          {t('chatFooterText1')}<kbd style={{ padding: "2px 5px", borderRadius: 4, border: "1px solid var(--border)", fontSize: 10 }}>{t('chatFooterText2')}</kbd>{t('chatFooterText3')}
         </div>
       </div>
     </div>

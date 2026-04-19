@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import { LanguageProvider } from "./LanguageContext";
 import Home    from "./pages/Home";
 import Chat    from "./pages/Chat";
 import Schemes from "./pages/Schemes";
@@ -7,8 +8,9 @@ import Verify  from "./pages/Verify";
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <div style={{ display: "flex", flexDirection: "column", minHeight: "100svh", background: "var(--bg)" }}>
+    <LanguageProvider>
+      <BrowserRouter>
+        <div style={{ display: "flex", flexDirection: "column", minHeight: "100svh", background: "var(--bg)" }}>
         <Navbar />
         <main style={{ flex: 1 }}>
           <Routes>
@@ -20,7 +22,8 @@ export default function App() {
             <Route path="*"        element={<Home    />} />
           </Routes>
         </main>
-      </div>
-    </BrowserRouter>
+        </div>
+      </BrowserRouter>
+    </LanguageProvider>
   );
 }

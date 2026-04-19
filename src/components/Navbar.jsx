@@ -9,17 +9,19 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { useLanguage } from "../LanguageContext";
 
 const NAV_LINKS = [
-  { to: "/",        label: "Home",       icon: Home        },
-  { to: "/chat",    label: "AI Chat",    icon: MessageSquare },
-  { to: "/schemes", label: "Schemes",    icon: List        },
-  { to: "/verify",  label: "Verify",     icon: ShieldCheck },
+  { to: "/",        labelKey: "navHome",       icon: Home        },
+  { to: "/chat",    labelKey: "navChat",    icon: MessageSquare },
+  { to: "/schemes", labelKey: "navSchemes",    icon: List        },
+  { to: "/verify",  labelKey: "navVerify",     icon: ShieldCheck },
 ];
 
 export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { lang, toggleLanguage, t } = useLanguage();
 
   const isActive = (path) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
@@ -70,17 +72,17 @@ export default function Navbar() {
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: 17, color: "var(--text-heading)", letterSpacing: "-0.3px" }}>
-                Bharat Lens
+                {t('navTitle')}
               </div>
               <div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 500, letterSpacing: "0.5px", marginTop: -2 }}>
-                भारत लेंस · Citizen Assistant
+                {t('navSubtitle')}
               </div>
             </div>
           </Link>
 
           {/* Desktop Nav */}
           <nav className="desktop-nav" style={{ alignItems: "center", gap: 4 }}>
-            {NAV_LINKS.map(({ to, label, icon: Icon }) => (
+            {NAV_LINKS.map(({ to, labelKey, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
@@ -100,12 +102,13 @@ export default function Navbar() {
                 }}
               >
                 <Icon size={15} />
-                {label}
+                {t(labelKey)}
               </Link>
             ))}
 
             {/* Language Toggle */}
             <button
+              onClick={toggleLanguage}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -114,17 +117,17 @@ export default function Navbar() {
                 padding: "8px 14px",
                 borderRadius: 8,
                 border: "1px solid var(--border)",
-                background: "white",
+                background: lang === 'hi' ? "var(--saffron-pale)" : "white",
+                color: lang === 'hi' ? "var(--saffron)" : "var(--text)",
                 cursor: "pointer",
-                fontWeight: 500,
+                fontWeight: 600,
                 fontSize: 13,
-                color: "var(--text)",
                 transition: "all 0.15s",
               }}
-              title="Language toggle (placeholder)"
+              title="Toggle application language"
             >
               <Globe size={14} />
-              EN / हिं
+              {lang === 'en' ? 'EN / हिं' : 'हिं / EN'}
             </button>
           </nav>
 
@@ -158,7 +161,7 @@ export default function Navbar() {
               gap: 4,
             }}
           >
-            {NAV_LINKS.map(({ to, label, icon: Icon }) => (
+            {NAV_LINKS.map(({ to, labelKey, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
@@ -177,17 +180,20 @@ export default function Navbar() {
                 }}
               >
                 <Icon size={18} />
-                {label}
+                {t(labelKey)}
               </Link>
             ))}
             <div style={{ marginTop: 8, paddingTop: 12, borderTop: "1px solid var(--border-subtle)" }}>
-              <button style={{
+              <button onClick={toggleLanguage} style={{
                 display: "flex", alignItems: "center", gap: 8,
-                background: "none", border: "1px solid var(--border)",
+                background: lang === 'hi' ? "var(--saffron-pale)" : "none", 
+                border: "1px solid var(--border)",
                 padding: "10px 14px", borderRadius: 8, cursor: "pointer",
-                fontWeight: 500, fontSize: 14, color: "var(--text)", width: "100%",
+                fontWeight: 600, fontSize: 14, 
+                color: lang === 'hi' ? "var(--saffron)" : "var(--text)", 
+                width: "100%",
               }}>
-                <Globe size={15} /> EN / हिंदी (Language Placeholder)
+                <Globe size={15} /> {t('toggleLang')}
               </button>
             </div>
           </div>
@@ -211,7 +217,7 @@ export default function Navbar() {
           alignItems: "center",
         }}
       >
-        {NAV_LINKS.map(({ to, label, icon: Icon }) => (
+        {NAV_LINKS.map(({ to, labelKey, icon: Icon }) => (
           <Link
             key={to}
             to={to}
@@ -230,7 +236,7 @@ export default function Navbar() {
             }}
           >
             <Icon size={20} strokeWidth={isActive(to) ? 2.5 : 1.8} />
-            {label}
+            {t(labelKey)}
           </Link>
         ))}
       </nav>

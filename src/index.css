@@ -213,3 +213,20 @@ input[type="checkbox"].bl-check {
   scrollbar-width: none;
 }
 .carousel-scroll::-webkit-scrollbar { display: none; }
+
+/* ─── Chat Container Responsive ─────────────────────────────────── */
+.chat-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - 64px); /* Full height minus exactly the top navbar */
+  padding-bottom: 24px;        /* flush bottom on desktop */
+}
+@media (max-width: 767px) {
+  .chat-container {
+    height: calc(100svh - 64px); 
+    padding-bottom: 84px;      /* enough room for mobile bottom nav resting above hardware bar */
+  }
+}

@@ -2,14 +2,16 @@ import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp } from "lucide-react";
 import { SCHEMES, CATEGORIES, REGIONS, CATEGORY_ICONS } from "../data/schemes";
+import { SCHEMES_HI } from "../data/schemes_hi";
+import { useLanguage } from "../LanguageContext";
 import SchemeModal from "../components/SchemeModal";
 
-function SchemeCard({ scheme, onLearnMore }) {
+function SchemeCard({ scheme, onLearnMore, t, lang }) {
   const icon   = CATEGORY_ICONS[scheme.category] || "📋";
-  const isCG   = scheme.region === "Chhattisgarh";
+  const isCG   = scheme.region === "Chhattisgarh" || scheme.region === "छत्तीसगढ़";
   const regionStyle = isCG
-    ? { bg: "#F0FDF4", text: "#166534", border: "#D1FAE5", label: "🏔️ Chhattisgarh" }
-    : { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", label: "🇮🇳 Central" };
+    ? { bg: "#F0FDF4", text: "#166534", border: "#D1FAE5", label: lang === 'hi' ? "🏔️ छत्तीसगढ़" : "🏔️ Chhattisgarh" }
+    : { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", label: lang === 'hi' ? "🇮🇳 केंद्र" : "🇮🇳 Central" };
 
   return (
     <div
@@ -79,7 +81,7 @@ function SchemeCard({ scheme, onLearnMore }) {
           onMouseOver={e => e.currentTarget.style.opacity = "0.9"}
           onMouseOut={e => e.currentTarget.style.opacity = "1"}
         >
-          Learn More →
+          {t('schViewDetails')} →
         </button>
       </div>
     </div>
@@ -87,6 +89,7 @@ function SchemeCard({ scheme, onLearnMore }) {
 }
 
 export default function Schemes() {
+  const { lang, t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const initCategory = searchParams.get("category") || "";
 
@@ -96,15 +99,21 @@ export default function Schemes() {
   const [modalScheme,      setModalScheme] = useState(null);
   const [sidebarOpen,      setSidebarOpen] = useState(false);
 
+  const ACTIVE_SCHEMES = lang === 'hi' ? SCHEMES_HI : SCHEMES;
+
   const filtered = useMemo(() => {
-    return SCHEMES.filter(s => {
+    return ACTIVE_SCHEMES.filter(s => {
       const matchSearch = !search || [s.name, s.description, s.category, s.region]
         .join(" ").toLowerCase().includes(search.toLowerCase());
-      const matchCat    = selectedCats.length === 0    || selectedCats.includes(s.category);
-      const matchRegion = selectedRegions.length === 0 || selectedRegions.includes(s.region);
+      // For category/region filtering, we need to match the actual text or keep mapping
+      // Since buttons still use English keys for CATEGORIES and REGIONS, we map them back
+      // If language is Hindi, matching might be tricky if selectedCats refers to english names. 
+      // For now, simplify category matches (checking both English logic and actual scheme strings)
+      const matchCat    = selectedCats.length === 0    || selectedCats.includes(s.category) || selectedCats.some(c => s.category.includes(c));
+      const matchRegion = selectedRegions.length === 0 || selectedRegions.includes(s.region) || (s.region === 'केंद्र' && selectedRegions.includes('Central')) || (s.region === 'छत्तीसगढ़' && selectedRegions.includes('Chhattisgarh'));
       return matchSearch && matchCat && matchRegion;
     });
-  }, [search, selectedCats, selectedRegions]);
+  }, [search, selectedCats, selectedRegions, ACTIVE_SCHEMES]);
 
   const toggleFilter = (arr, setArr, val) =>
     setArr(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
@@ -133,6 +142,8 @@ export default function Schemes() {
             setSelectedRegions={setSelectedRegions}
             activeFilterCount={activeFilterCount}
             clearAll={clearAll}
+            t={t}
+            lang={lang}
           />
         </aside>
 
@@ -147,7 +158,7 @@ export default function Schemes() {
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search schemes..."
+                placeholder={t("schSearchPlace")}
                 style={{
                   width: "100%", border: "1px solid var(--border)",
                   borderRadius: 10, padding: "10px 12px 10px 36px",
@@ -174,7 +185,7 @@ export default function Schemes() {
               }}
             >
               <SlidersHorizontal size={15} />
-              Filters
+              {t('schFilters')}
               {activeFilterCount > 0 && (
                 <span style={{
                   background: "white", color: "var(--saffron)",
@@ -188,7 +199,7 @@ export default function Schemes() {
             </button>
 
             <div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500, whiteSpace: "nowrap" }}>
-              {filtered.length} of {SCHEMES.length} schemes
+              {filtered.length} / {ACTIVE_SCHEMES.length}
             </div>
           </div>
 
@@ -203,6 +214,8 @@ export default function Schemes() {
                 setSelectedRegions={setSelectedRegions}
                 activeFilterCount={activeFilterCount}
                 clearAll={clearAll}
+                t={t}
+                lang={lang}
               />
             </div>
           )}
@@ -222,7 +235,7 @@ export default function Schemes() {
                 color: "var(--text-muted)", fontSize: 12, fontWeight: 600,
                 display: "flex", alignItems: "center", gap: 3, padding: "4px 8px",
               }}>
-                <X size={12} /> Clear all
+                <X size={12} /> {t('schClearAll')}
               </button>
             </div>
           )}
@@ -231,18 +244,18 @@ export default function Schemes() {
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-muted)" }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-              <h3 style={{ color: "var(--text-heading)", marginBottom: 8 }}>No schemes found</h3>
-              <p>Try different search terms or clear the filters.</p>
+              <h3 style={{ color: "var(--text-heading)", marginBottom: 8 }}>{t('schNoSchemesFound')}</h3>
+              <p>{t('schTryDifferent')}</p>
               <button onClick={clearAll} style={{
                 marginTop: 16, padding: "10px 20px", borderRadius: 10,
                 background: "var(--saffron)", color: "white", border: "none",
                 cursor: "pointer", fontWeight: 600, fontSize: 14,
-              }}>Clear Filters</button>
+              }}>{t('schBtnClear')}</button>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 18 }}>
               {filtered.map(scheme => (
-                <SchemeCard key={scheme.id} scheme={scheme} onLearnMore={setModalScheme} />
+                <SchemeCard key={scheme.id} scheme={scheme} onLearnMore={setModalScheme} t={t} lang={lang} />
               ))}
             </div>
           )}
@@ -257,7 +270,7 @@ export default function Schemes() {
   );
 }
 
-function SidebarContent({ selectedCats, selectedRegions, toggleFilter, setSelectedCats, setSelectedRegions, activeFilterCount, clearAll }) {
+function SidebarContent({ selectedCats, selectedRegions, toggleFilter, setSelectedCats, setSelectedRegions, activeFilterCount, clearAll, t, lang }) {
   const [catsOpen, setCatsOpen] = useState(true);
   const [regOpen,  setRegOpen]  = useState(true);
 
@@ -272,7 +285,7 @@ function SidebarContent({ selectedCats, selectedRegions, toggleFilter, setSelect
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-heading)", display: "flex", alignItems: "center", gap: 6 }}>
-          <SlidersHorizontal size={15} /> Filters
+          <SlidersHorizontal size={15} /> {t('schFilters')}
           {activeFilterCount > 0 && (
             <span style={{
               background: "var(--saffron)", color: "white",
@@ -284,27 +297,28 @@ function SidebarContent({ selectedCats, selectedRegions, toggleFilter, setSelect
           <button onClick={clearAll} style={{
             background: "none", border: "none", cursor: "pointer",
             color: "var(--saffron)", fontSize: 12, fontWeight: 600,
-          }}>Clear</button>
+          }}>{t('schClearBtn')}</button>
         )}
       </div>
 
       {/* Region */}
-      <FilterSection title="Region" open={regOpen} toggle={() => setRegOpen(o => !o)}>
+      <FilterSection title={t('schRegion')} open={regOpen} toggle={() => setRegOpen(o => !o)}>
         {REGIONS.map(r => (
           <label key={r} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "5px 0" }}>
             <input type="checkbox" className="bl-check" checked={selectedRegions.includes(r)}
               onChange={() => toggleFilter(selectedRegions, setSelectedRegions, r)} />
             <span style={{ fontSize: 13, color: "var(--text)", fontWeight: selectedRegions.includes(r) ? 600 : 400 }}>
-              {r === "Central" ? "🇮🇳 Central" : "🏔️ Chhattisgarh"}
+              {r === "Central" ? (lang === 'hi' ? "🇮🇳 केंद्र" : "🇮🇳 Central") : (lang === 'hi' ? "🏔️ छत्तीसगढ़" : "🏔️ Chhattisgarh")}
             </span>
           </label>
         ))}
       </FilterSection>
 
       {/* Category */}
-      <FilterSection title="Category" open={catsOpen} toggle={() => setCatsOpen(o => !o)}>
+      <FilterSection title={t('schCategory')} open={catsOpen} toggle={() => setCatsOpen(o => !o)}>
         {CATEGORIES.map(c => {
           const icon = CATEGORY_ICONS[c] || "📋";
+          // We translate just simple categories optionally if mapped, for now we will just render c.
           return (
             <label key={c} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "5px 0" }}>
               <input type="checkbox" className="bl-check" checked={selectedCats.includes(c)}

@@ -1,33 +1,36 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Search, ArrowRight, Wheat, HeartPulse, GraduationCap,
-  Briefcase, ChevronRight, Shield, Zap, Users
+  Briefcase, MessageSquare, List, ShieldCheck, Zap,
+  ChevronRight, Shield
 } from "lucide-react";
+import { useLanguage } from "../LanguageContext";
 
 const CATEGORIES = [
-  { label: "Agriculture", icon: Wheat,          color: "#16A34A", bg: "#F0FDF4", query: "Agriculture" },
-  { label: "Health",      icon: HeartPulse,      color: "#DC2626", bg: "#FFF5F5", query: "Health"      },
-  { label: "Education",   icon: GraduationCap,   color: "#2563EB", bg: "#EFF6FF", query: "Education"   },
-  { label: "Business",    icon: Briefcase,       color: "#D97706", bg: "#FFFBEB", query: "Business"    },
+  { labelKey: "catAgriculture", icon: Wheat,          color: "#16A34A", bg: "#F0FDF4", query: "Agriculture" },
+  { labelKey: "catHealth",      icon: HeartPulse,      color: "#DC2626", bg: "#FFF5F5", query: "Health"      },
+  { labelKey: "catEducation",   icon: GraduationCap,   color: "#2563EB", bg: "#EFF6FF", query: "Education"   },
+  { labelKey: "catBusiness",    icon: Briefcase,       color: "#D97706", bg: "#FFFBEB", query: "Business"    },
 ];
 
 const STATS = [
-  { label: "Schemes Indexed",  value: "40+",  icon: "📋" },
-  { label: "Citizens Helped",  value: "1K+",  icon: "👥" },
-  { label: "States Covered",   value: "2",    icon: "🗺️" },
-  { label: "Queries Resolved", value: "500+", icon: "✅" },
+  { labelKey: "statSchemes",  value: "40+",  icon: "📋" },
+  { labelKey: "statCitizens",  value: "1K+",  icon: "👥" },
+  { labelKey: "statStates",   value: "2",    icon: "🗺️" },
+  { labelKey: "statQueries", value: "500+", icon: "✅" },
 ];
 
 const QUICK_LINKS = [
-  "PM Kisan ₹6,000 payment status",
-  "Mahtari Vandan Yojana eligibility",
-  "Ayushman Bharat hospital list",
-  "MUDRA loan application steps",
-  "Free LPG connection apply",
+  { textKey: "qlKisan", query: "PM Kisan ₹6,000 payment status" },
+  { textKey: "qlMahtari", query: "Mahtari Vandan Yojana eligibility" },
+  { textKey: "qlAyushman", query: "Ayushman Bharat hospital list" },
+  { textKey: "qlMudra", query: "MUDRA loan application steps" },
+  { textKey: "qlLpg", query: "Free LPG connection apply" },
 ];
 
 export default function Home() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
@@ -57,40 +60,26 @@ export default function Home() {
         <div style={{ position: "relative", maxWidth: 720, margin: "0 auto" }}>
           {/* Badge */}
           <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
+            display: "inline-block", padding: "6px 14px", borderRadius: 99,
             background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
             border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 99, padding: "6px 16px", marginBottom: 28,
+            fontSize: 13, fontWeight: 700, marginBottom: 20, letterSpacing: "0.5px", color: "white"
           }}>
-            <Zap size={13} color="#FFB347" fill="#FFB347" />
-            <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.9)" }}>
-              Powered by AI · RAG-enabled · 40 Schemes
-            </span>
+            🇮🇳 {t('badgeText')}
           </div>
 
           <h1 style={{
-            fontSize: "clamp(28px, 5vw, 52px)",
-            fontWeight: 800,
-            color: "white",
-            lineHeight: 1.2,
-            marginBottom: 16,
-            letterSpacing: "-1px",
+            fontSize: "clamp(32px, 5vw, 56px)", fontWeight: 800,
+            color: "white", lineHeight: 1.1, marginBottom: 20,
+            letterSpacing: "-1px"
           }}>
-            Your Gateway to{" "}
-            <span style={{
-              background: "linear-gradient(90deg, var(--saffron), #FFB347)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}>
-              Government Benefits
-            </span>
+            {t('heroTitle')}
           </h1>
           <p style={{
-            color: "rgba(255,255,255,0.72)", fontSize: "clamp(14px, 2vw, 17px)",
-            lineHeight: 1.7, marginBottom: 36,
+            fontSize: "clamp(16px, 2vw, 20px)", color: "rgba(255,255,255,0.8)",
+            lineHeight: 1.6, marginBottom: 36,
           }}>
-            Ask in plain language. Get instant answers about Central & Chhattisgarh
-            schemes — eligibility, benefits, and step-by-step application guidance.
+            {t('heroSubtitle')}
           </p>
 
           {/* Search Bar */}
@@ -108,7 +97,7 @@ export default function Home() {
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="e.g., मैं PM Kisan के लिए eligible हूँ?"
+                placeholder={t('searchPlaceholder')}
                 style={{
                   flex: 1, border: "none", outline: "none", background: "transparent",
                   padding: "16px 12px", fontSize: 14, color: "var(--text-heading)",
@@ -126,7 +115,7 @@ export default function Home() {
                   transition: "opacity 0.15s",
                 }}
               >
-                Ask AI <ArrowRight size={15} />
+                {t('askAi')} <ArrowRight size={15} />
               </button>
             </div>
           </form>
@@ -135,8 +124,8 @@ export default function Home() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
             {QUICK_LINKS.map(q => (
               <button
-                key={q}
-                onClick={() => navigate(`/chat?q=${encodeURIComponent(q)}`)}
+                key={q.textKey}
+                onClick={() => navigate(`/chat?q=${encodeURIComponent(q.query)}`)}
                 style={{
                   background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)",
                   borderRadius: 99, padding: "6px 14px", cursor: "pointer",
@@ -146,7 +135,7 @@ export default function Home() {
                 onMouseOver={e => { e.currentTarget.style.background = "rgba(255,107,0,0.25)"; e.currentTarget.style.color = "white"; }}
                 onMouseOut={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "rgba(255,255,255,0.85)"; }}
               >
-                {q}
+                {t(q.textKey)}
               </button>
             ))}
           </div>
@@ -159,7 +148,7 @@ export default function Home() {
         <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 0 }}>
           {STATS.map((s, i) => (
             <div
-              key={s.label}
+              key={s.labelKey}
               style={{
                 padding: "16px 20px",
                 textAlign: "center",
@@ -168,7 +157,7 @@ export default function Home() {
             >
               <div style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</div>
               <div style={{ fontSize: 26, fontWeight: 800, color: "var(--saffron)", lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 500, marginTop: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 500, marginTop: 4 }}>{t(s.labelKey)}</div>
             </div>
           ))}
         </div>
@@ -178,20 +167,20 @@ export default function Home() {
       <section style={{ maxWidth: 1100, margin: "0 auto", padding: "56px 20px 0" }}>
         <div style={{ textAlign: "center", marginBottom: 36 }}>
           <div style={{ display: "inline-block", background: "var(--saffron-pale)", color: "var(--saffron)", padding: "4px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
-            FEATURED CATEGORIES
+            {t('featuredCategories')}
           </div>
           <h2 style={{ fontSize: "clamp(22px, 3vw, 34px)", fontWeight: 800, letterSpacing: "-0.5px" }}>
-            Explore Schemes by Category
+            {t('exploreSchemes')}
           </h2>
           <p style={{ color: "var(--text-muted)", marginTop: 8, fontSize: 15 }}>
-            Thousands of crores in annual benefits waiting to be claimed
+            {t('thousandsBenefits')}
           </p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
-          {CATEGORIES.map(({ label, icon: Icon, color, bg, query: q }) => (
+          {CATEGORIES.map(({ labelKey, icon: Icon, color, bg, query: q }) => (
             <button
-              key={label}
+              key={labelKey}
               className="card-hover"
               onClick={() => navigate(`/schemes?category=${q}`)}
               style={{
@@ -209,13 +198,13 @@ export default function Home() {
                 <Icon size={26} color={color} />
               </div>
               <div style={{ fontWeight: 700, fontSize: 17, color: "var(--text-heading)", marginBottom: 6 }}>
-                {label}
+                {t(labelKey)}
               </div>
               <div style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
-                Find all {label.toLowerCase()} schemes
+                {t('findAll')} {t(labelKey)} {t('schemes')}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 4, color, fontSize: 13, fontWeight: 600 }}>
-                Explore <ChevronRight size={14} />
+                {t('explore')} <ChevronRight size={14} />
               </div>
             </button>
           ))}
@@ -229,27 +218,27 @@ export default function Home() {
         }}>
           <FeatureBox
             icon="🤖"
-            title="AI-Powered Answers"
-            desc="Ask in Hindi or English. Our AI searches 40+ schemes instantly and gives you personalized eligibility checks."
+            title={t('featChatTitle')}
+            desc={t('featChatDesc')}
             color="var(--saffron)"
             href="/chat"
-            cta="Chat Now"
+            cta={t('btnChatNow')}
           />
           <FeatureBox
             icon="🛡️"
-            title="Scam Verification"
-            desc="Paste any link or SMS message. We'll tell you instantly if it's a scam or a real government portal."
+            title={t('featScamTitle')}
+            desc={t('featScamDesc')}
             color="var(--india-green)"
             href="/verify"
-            cta="Verify Link"
+            cta={t('btnVerifyLink')}
           />
           <FeatureBox
             icon="📚"
-            title="Scheme Directory"
-            desc="Browse all 40 Central & CG schemes with full eligibility, documents needed, and official portal links."
+            title={t('featDirTitle')}
+            desc={t('featDirDesc')}
             color="var(--navy)"
             href="/schemes"
-            cta="Browse All"
+            cta={t('btnBrowseAll')}
           />
         </div>
       </section>
@@ -265,11 +254,10 @@ export default function Home() {
           <Shield size={28} color="var(--india-green)" style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 16, color: "var(--india-green)", marginBottom: 4 }}>
-              100% Free · No Data Stored · Official Sources Only
+              {t('trustTitle')}
             </div>
             <p style={{ color: "#166534", fontSize: 13, lineHeight: 1.6 }}>
-              Bharat Lens is a public-interest tool. All scheme information is sourced directly from
-              official Government of India and Chhattisgarh state portals. We never ask for Aadhaar or personal data.
+              {t('trustDesc')}
             </p>
           </div>
         </div>

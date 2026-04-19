@@ -84,7 +84,7 @@ export async function queryPinecone(embedding, topK = 3) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. Generate RAG Response with GPT-4o Mini
 // ─────────────────────────────────────────────────────────────────────────────
-export async function generateRAGResponse(userQuery, contextChunks) {
+export async function generateRAGResponse(userQuery, contextChunks, history = [], lang = 'en') {
   if (!OPENAI_API_KEY) throw new Error("VITE_OPENAI_API_KEY is not set in .env");
 
   // Build context string from Pinecone matches
@@ -97,6 +97,10 @@ export async function generateRAGResponse(userQuery, contextChunks) {
     })
     .join("\n\n");
 
+  const languageInstruction = lang === 'hi' 
+    ? "VERY IMPORTANT: You MUST respond entirely in the Hindi (हिन्दी) language, using Devanagari script. All scheme details, eligibility, and instructions must be in Hindi." 
+    : "Respond primarily in English. If the user writes in Hindi or a mix, answer in the same language.";
+
   const systemPrompt = `You are "Bharat Lens AI," a helpful and trusted assistant for Indian citizens seeking information about Central and Chhattisgarh state government schemes and benefits.
 
 Your ONLY job is to answer questions using the provided CONTEXT below. 
@@ -107,7 +111,7 @@ Rules you must always follow:
 3. Always be polite and empathetic. Many users are rural citizens with limited digital literacy.
 4. When you mention a scheme, state the official source/helpline if available in context.
 5. Respond in simple, clear language. Avoid bureaucratic jargon.
-6. If the user writes in Hindi or a mix, try to respond in the same language.
+6. ${languageInstruction}
 
 CONTEXT:
 ${contextText || "No relevant schemes found in the database for this query."}`;
@@ -122,6 +126,7 @@ ${contextText || "No relevant schemes found in the database for this query."}`;
       model: CHAT_MODEL,
       messages: [
         { role: "system",    content: systemPrompt },
+        ...history,
         { role: "user",      content: userQuery    },
       ],
       temperature: 0.3,
@@ -141,9 +146,17 @@ ${contextText || "No relevant schemes found in the database for this query."}`;
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. Master Search Function (Embedding → Pinecone → GPT-4o Mini)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function searchSchemes(query) {
+export async function searchSchemes(query, history = [], lang = 'en') {
   // Step 1: Embed the query
-  const embedding = await getEmbedding(query);
+  // To handle follow-up questions (like "what about eligibility?"), we append the last 
+  // user message to the current query so Pinecone gets the entity context (e.g. "PM Kisan").
+  let searchQuery = query;
+  const lastUserMsg = [...history].reverse().find(m => m.role === 'user');
+  if (lastUserMsg) {
+    searchQuery = `${lastUserMsg.content} ${query}`;
+  }
+  
+  const embedding = await getEmbedding(searchQuery);
 
   // Step 2: Query Pinecone for top-3 relevant chunks
   const matches = await queryPinecone(embedding, 3);
@@ -158,7 +171,7 @@ export async function searchSchemes(query) {
     }));
 
   // Step 4: Generate RAG response
-  const answer = await generateRAGResponse(query, matches);
+  const answer = await generateRAGResponse(query, matches, history, lang);
 
   return { answer, sources };
 }

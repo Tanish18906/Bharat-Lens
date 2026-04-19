@@ -1,7 +1,9 @@
 import { X, ExternalLink, CheckCircle, BookOpen, Phone } from "lucide-react";
 import { CATEGORY_ICONS } from "../data/schemes";
+import { useLanguage } from "../LanguageContext";
 
 export default function SchemeModal({ scheme, onClose }) {
+  const { t } = useLanguage();
   if (!scheme) return null;
 
   const icon = CATEGORY_ICONS[scheme.category] || "📋";
@@ -59,7 +61,7 @@ export default function SchemeModal({ scheme, onClose }) {
                     padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 600,
                     background: regionColor.bg, color: regionColor.text, border: `1px solid ${regionColor.border}`,
                   }}>
-                    {scheme.region === "Central" ? "🇮🇳 Central" : "🏔️ Chhattisgarh"}
+                    {scheme.region === "Central" ? (t('navHome') === 'होम' ? "🇮🇳 केंद्र" : "🇮🇳 Central") : (t('navHome') === 'होम' ? "🏔️ छत्तीसगढ़" : "🏔️ Chhattisgarh")}
                   </span>
                   <span style={{
                     padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 600,
@@ -87,19 +89,19 @@ export default function SchemeModal({ scheme, onClose }) {
             {scheme.description}
           </p>
 
-          <Section icon="✅" title="Eligibility">
+          <Section icon="✅" title={t('modElig')}>
             <p style={{ color: "var(--text)", lineHeight: 1.7, fontSize: 14 }}>{scheme.eligibility}</p>
           </Section>
 
-          <Section icon="🎁" title="Benefits">
+          <Section icon="🎁" title={t('modBen')}>
             <p style={{ color: "var(--text)", lineHeight: 1.7, fontSize: 14, fontWeight: 500 }}>{scheme.benefit}</p>
           </Section>
 
-          <Section icon={<BookOpen size={15} />} title="Application Process">
+          <Section icon={<BookOpen size={15} />} title={t('modAppProc')}>
             <p style={{ color: "var(--text)", lineHeight: 1.8, fontSize: 14 }}>{scheme.applicationProcess}</p>
           </Section>
 
-          <Section icon="📄" title="Documents Required">
+          <Section icon="📄" title={t('modDocsReq')}>
             <ul style={{ margin: 0, padding: "0 0 0 18px" }}>
               {scheme.documents.map((doc, i) => (
                 <li key={i} style={{ color: "var(--text)", fontSize: 14, lineHeight: 2, display: "flex", alignItems: "center", gap: 8 }}>
@@ -119,7 +121,7 @@ export default function SchemeModal({ scheme, onClose }) {
             <Phone size={16} color="var(--saffron)" style={{ marginTop: 2, flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--saffron)", letterSpacing: "0.5px", marginBottom: 2 }}>
-                HELPDESK
+                {t('modHelpdeskTitle')}
               </div>
               <div style={{ fontSize: 14, color: "var(--text-heading)", fontWeight: 500 }}>
                 {scheme.helpdesk}
@@ -153,7 +155,7 @@ export default function SchemeModal({ scheme, onClose }) {
             onMouseOver={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(255,107,0,0.45)"; }}
             onMouseOut={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 15px rgba(255,107,0,0.35)"; }}
           >
-            Apply Now – Official Portal
+            {t('modApplyNow')}
             <ExternalLink size={15} />
           </a>
         </div>
