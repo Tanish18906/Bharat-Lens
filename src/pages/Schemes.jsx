@@ -105,11 +105,11 @@ export default function Schemes() {
     return ACTIVE_SCHEMES.filter(s => {
       const matchSearch = !search || [s.name, s.description, s.category, s.region]
         .join(" ").toLowerCase().includes(search.toLowerCase());
-      // For category/region filtering, we need to match the actual text or keep mapping
-      // Since buttons still use English keys for CATEGORIES and REGIONS, we map them back
-      // If language is Hindi, matching might be tricky if selectedCats refers to english names. 
-      // For now, simplify category matches (checking both English logic and actual scheme strings)
-      const matchCat    = selectedCats.length === 0    || selectedCats.includes(s.category) || selectedCats.some(c => s.category.includes(c));
+      const matchCat = selectedCats.length === 0 || selectedCats.some(c => {
+        const catKey = 'cat' + c.replace(/[^a-zA-Z]/g, '');
+        const translatedCat = t(catKey) !== catKey ? t(catKey) : c;
+        return s.category === c || s.category === translatedCat || s.category.includes(c) || s.category.includes(translatedCat);
+      });
       const matchRegion = selectedRegions.length === 0 || selectedRegions.includes(s.region) || (s.region === 'केंद्र' && selectedRegions.includes('Central')) || (s.region === 'छत्तीसगढ़' && selectedRegions.includes('Chhattisgarh'));
       return matchSearch && matchCat && matchRegion;
     });
@@ -223,12 +223,15 @@ export default function Schemes() {
           {/* Active filter chips */}
           {activeFilterCount > 0 && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-              {selectedCats.map(c => (
-                <Chip key={c} label={c} onRemove={() => toggleFilter(selectedCats, setSelectedCats, c)} />
-              ))}
-              {selectedRegions.map(r => (
-                <Chip key={r} label={r} onRemove={() => toggleFilter(selectedRegions, setSelectedRegions, r)} />
-              ))}
+              {selectedCats.map(c => {
+                const catKey = 'cat' + c.replace(/[^a-zA-Z]/g, '');
+                const catLabel = t(catKey) !== catKey ? t(catKey) : c;
+                return <Chip key={c} label={catLabel} onRemove={() => toggleFilter(selectedCats, setSelectedCats, c)} />
+              })}
+              {selectedRegions.map(r => {
+                const rLabel = r === "Central" ? (lang === 'hi' ? "🇮🇳 केंद्र" : "🇮🇳 Central") : (lang === 'hi' ? "🏔️ छत्तीसगढ़" : "🏔️ Chhattisgarh");
+                return <Chip key={r} label={rLabel} onRemove={() => toggleFilter(selectedRegions, setSelectedRegions, r)} />
+              })}
               {search && <Chip label={`"${search}"`} onRemove={() => setSearch("")} />}
               <button onClick={clearAll} style={{
                 background: "none", border: "none", cursor: "pointer",
@@ -318,13 +321,14 @@ function SidebarContent({ selectedCats, selectedRegions, toggleFilter, setSelect
       <FilterSection title={t('schCategory')} open={catsOpen} toggle={() => setCatsOpen(o => !o)}>
         {CATEGORIES.map(c => {
           const icon = CATEGORY_ICONS[c] || "📋";
-          // We translate just simple categories optionally if mapped, for now we will just render c.
+          const catKey = 'cat' + c.replace(/[^a-zA-Z]/g, '');
+          const catLabel = t(catKey) !== catKey ? t(catKey) : c;
           return (
             <label key={c} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "5px 0" }}>
               <input type="checkbox" className="bl-check" checked={selectedCats.includes(c)}
                 onChange={() => toggleFilter(selectedCats, setSelectedCats, c)} />
               <span style={{ fontSize: 13, color: "var(--text)", fontWeight: selectedCats.includes(c) ? 600 : 400 }}>
-                {icon} {c}
+                {icon} {catLabel}
               </span>
             </label>
           );
