@@ -72,7 +72,7 @@ function MessageBubble({ msg, onCopy }) {
             wordBreak: "break-word",
           }}
         >
-          {msg.content}
+          <ReactMarkdown className="prose">{msg.content}</ReactMarkdown>
         </div>
 
         {/* Source labels */}
