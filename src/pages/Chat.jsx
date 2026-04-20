@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import {
   Send, Mic, MicOff, Bot, User, ExternalLink,
   Sparkles, RotateCcw, Copy, CheckCheck,
@@ -74,7 +75,25 @@ function MessageBubble({ msg, onCopy }) {
             wordBreak: "break-word",
           }}
         >
-          {content}
+          {isUser ? (
+            content
+          ) : (
+            <ReactMarkdown
+              className="prose"
+              components={{
+                a: (props) => (
+                  <a
+                    {...props}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline break-all"
+                  />
+                ),
+              }}
+            >
+              {content}
+            </ReactMarkdown>
+          )}
         </div>
 
         {/* Source labels */}
