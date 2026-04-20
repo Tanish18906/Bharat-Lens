@@ -161,6 +161,7 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
+  const transcriptRef = useRef("");
 
   const now = () =>
     new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
@@ -225,37 +226,95 @@ export default function Chat() {
     setInput("");
   };
 
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  const getVoiceErrorMessage = (errorCode) => {
+    if (errorCode === "not-allowed" || errorCode === "service-not-allowed") {
+      return t("chatVoicePermissionDenied");
+    }
+    if (errorCode === "no-speech") {
+      return t("chatVoiceNoSpeech");
+    }
+    if (errorCode === "network") {
+      return t("chatVoiceNetworkError");
+    }
+    return t("chatVoiceGenericError");
+  };
+
   // Voice input (Web Speech API)
   const toggleVoice = () => {
-    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      alert(t('chatVoiceNotSupported'));
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setError(t("chatVoiceNotSupported"));
+      return;
+    }
+
+    if (!window.isSecureContext) {
+      setError(t("chatVoiceSecureContext"));
       return;
     }
 
     if (listening) {
       recognitionRef.current?.stop();
-      setListening(false);
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setError(null);
+    transcriptRef.current = "";
+
     const recognition = new SpeechRecognition();
-    recognition.lang = "hi-IN";
-    recognition.interimResults = false;
+    recognition.lang = lang === "hi" ? "hi-IN" : "en-IN";
+    recognition.interimResults = true;
+    recognition.continuous = false;
     recognition.maxAlternatives = 1;
 
+    recognition.onstart = () => {
+      setListening(true);
+    };
+
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(transcript);
+      let finalText = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        const piece = result?.[0]?.transcript?.trim();
+        if (!piece) continue;
+        if (result.isFinal) {
+          finalText += `${piece} `;
+        }
+      }
+
+      if (finalText) {
+        transcriptRef.current += finalText;
+      }
+    };
+
+    recognition.onerror = (event) => {
+      setError(getVoiceErrorMessage(event?.error));
       setListening(false);
     };
 
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+    recognition.onend = () => {
+      const transcript = transcriptRef.current.trim();
+      if (transcript) {
+        setInput(prev => (prev ? `${prev} ${transcript}` : transcript));
+        inputRef.current?.focus();
+      }
+      setListening(false);
+      transcriptRef.current = "";
+    };
 
     recognitionRef.current = recognition;
-    recognition.start();
-    setListening(true);
+    try {
+      recognition.start();
+    } catch {
+      setListening(false);
+      setError(t("chatVoiceGenericError"));
+    }
   };
 
   const isEmpty = messages.length === 0 && !loading;
