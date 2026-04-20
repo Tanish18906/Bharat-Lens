@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { Component, memo, useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import {
@@ -17,6 +17,44 @@ const SUGGESTED_QUESTIONS = [
   { textKey: "sqPadhai", query: "Padhai Tuhar Dwar — how to access online classes?", emoji: "📚" },
   { textKey: "sqGodhan", query: "What is the Godhan Nyay Yojana benefit?", emoji: "🐄" },
 ];
+
+const REQUEST_TIMEOUT_MS = 45000;
+const MAX_ASSISTANT_CHARS = 5000;
+
+function withTimeout(promise, timeoutMs) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error("Request timed out. Please try again.")), timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  });
+}
+
+class RenderErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? null;
+    }
+    return this.props.children;
+  }
+}
 
 function MessageBubble({ msg, onCopy }) {
   const { t } = useLanguage();
@@ -80,6 +118,7 @@ function MessageBubble({ msg, onCopy }) {
           ) : (
             <ReactMarkdown
               className="prose"
+              skipHtml
               components={{
                 a: ({ node, className, ...props }) => {
                   void node;
@@ -168,6 +207,8 @@ function ErrorMessage({ error, onRetry }) {
   );
 }
 
+const MemoMessageBubble = memo(MessageBubble);
+
 export default function Chat() {
   const { lang, t } = useLanguage();
   const [searchParams] = useSearchParams();
@@ -227,16 +268,20 @@ export default function Chat() {
       // Keep memory around the last ~10 user turns with nearby assistant replies.
       const historyContext = buildHistoryContext(messages, 10);
 
-      const { answer, sources } = await searchSchemes(text, historyContext, lang);
+      const { answer, sources } = await withTimeout(
+        searchSchemes(text, historyContext, lang),
+        REQUEST_TIMEOUT_MS
+      );
+      const safeAnswer = typeof answer === "string" ? answer.slice(0, MAX_ASSISTANT_CHARS) : "";
       const assistantMsg = {
         role: "assistant",
-        content: typeof answer === "string" ? answer : t('chatErrorMsg'),
+        content: safeAnswer || t('chatErrorMsg'),
         sources: Array.isArray(sources) ? sources : [],
         time: now(),
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err) {
-      setError(err.message || t('chatErrorMsg'));
+      setError(err instanceof Error ? err.message : t('chatErrorMsg'));
     } finally {
       setLoading(false);
     }
@@ -455,7 +500,29 @@ export default function Chat() {
         )}
 
         {messages.map((msg, i) => (
-          <MessageBubble key={i} msg={msg} />
+          <RenderErrorBoundary
+            key={i}
+            resetKey={`${msg.role}:${msg.time}:${i}`}
+            fallback={
+              <div
+                style={{
+                  background: "white",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  color: "var(--text-heading)",
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {typeof msg.content === "string" ? msg.content : String(msg.content ?? "")}
+              </div>
+            }
+          >
+            <MemoMessageBubble msg={msg} />
+          </RenderErrorBoundary>
         ))}
 
         {loading && (
