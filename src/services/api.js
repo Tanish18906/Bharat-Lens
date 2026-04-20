@@ -11,6 +11,54 @@ const PINECONE_HOST    = import.meta.env.VITE_PINECONE_HOST; // e.g. https://sch
 const EMBEDDING_MODEL  = "text-embedding-3-small";
 const CHAT_MODEL       = "gpt-4o-mini";
 
+function detectRequestedReplyStyle(userQuery, history = []) {
+  const recentUserTexts = [
+    userQuery,
+    ...[...history]
+      .reverse()
+      .filter(m => m?.role === "user")
+      .slice(0, 10)
+      .map(m => m?.content || ""),
+  ];
+
+  const hasAny = (text, patterns) => patterns.some(pattern => pattern.test(text));
+
+  for (const rawText of recentUserTexts) {
+    const text = String(rawText || "").toLowerCase();
+    if (!text) continue;
+
+    const wantsHindi = hasAny(text, [
+      /\bin hindi\b/,
+      /\bpure hindi\b/,
+      /\bhindi me\b/,
+      /\bhindi mein\b/,
+      /हिंदी में/,
+      /शुद्ध हिंदी/,
+      /देवनागरी/,
+      /हिन्दी में/,
+    ]);
+    if (wantsHindi) return "hindi";
+
+    const wantsHinglish = hasAny(text, [
+      /\bin hinglish\b/,
+      /\bhinglish\b/,
+      /हिंग्लिश/,
+    ]);
+    if (wantsHinglish) return "hinglish";
+
+    const wantsEnglish = hasAny(text, [
+      /\bin english\b/,
+      /\benglish me\b/,
+      /\benglish mein\b/,
+      /अंग्रेजी में/,
+      /english only/,
+    ]);
+    if (wantsEnglish) return "english";
+  }
+
+  return null;
+}
+
 // ── Scam Detection Heuristics ─────────────────────────────────────────────────
 const GOV_DOMAIN_PATTERN = /\.gov\.in(\/|$)/i;
 const SUSPICIOUS_PATTERNS = [
@@ -97,7 +145,23 @@ export async function generateRAGResponse(userQuery, contextChunks, history = []
     .join("\n\n");
 
   const appLanguage = lang === 'hi' ? 'Hindi' : 'English';
-  const languageInstruction = `VERY IMPORTANT: You MUST respond in the EXACT same language and script the user uses in their message. If they write in English, reply in English. If they write in pure Hindi (Devanagari script), reply in pure Hindi. If they write in Hinglish (Hindi words in English alphabet), reply in Hinglish. If the user's language is ambiguous, prefer ${appLanguage}.`;
+  const requestedStyle = detectRequestedReplyStyle(userQuery, history);
+  const explicitStyleInstruction = requestedStyle === "hindi"
+    ? "The user explicitly asked for Hindi. Reply in pure Hindi (Devanagari script). Avoid English words except unavoidable proper nouns/scheme names."
+    : requestedStyle === "hinglish"
+      ? "The user explicitly asked for Hinglish. Reply in Hinglish (Hindi in English alphabet, natural conversational style)."
+      : requestedStyle === "english"
+        ? "The user explicitly asked for English. Reply fully in English."
+        : "No explicit language override found.";
+
+  const languageInstruction = `LANGUAGE POLICY (strict):
+1. Highest priority: If the user explicitly asks for a reply language (Hindi/Hinglish/English), follow that request even if the request sentence is written in another language.
+2. If user says Hindi or pure Hindi, reply in pure Hindi (Devanagari script).
+3. If user says Hinglish, reply in Hinglish.
+4. If user says English, reply in English.
+5. If no explicit request, mirror the user's latest input style exactly (English -> English, Hinglish -> Hinglish, Hindi -> Hindi).
+6. If still ambiguous, prefer ${appLanguage}.
+Current explicit style decision: ${explicitStyleInstruction}`;
 
   const systemPrompt = `You are "Bharat Lens AI," a helpful and trusted assistant for Indian citizens seeking information about Central and Chhattisgarh state government schemes and benefits.
 

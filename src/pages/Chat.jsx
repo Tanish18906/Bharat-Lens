@@ -166,6 +166,28 @@ export default function Chat() {
   const now = () =>
     new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
+  const buildHistoryContext = (allMessages, userTurns = 10) => {
+    const collected = [];
+    let userCount = 0;
+
+    for (let i = allMessages.length - 1; i >= 0; i -= 1) {
+      const msg = allMessages[i];
+      if (!msg || (msg.role !== "user" && msg.role !== "assistant")) continue;
+
+      collected.push({
+        role: msg.role,
+        content: typeof msg.content === "string" ? msg.content : String(msg.content ?? ""),
+      });
+
+      if (msg.role === "user") {
+        userCount += 1;
+        if (userCount >= userTurns) break;
+      }
+    }
+
+    return collected.reverse();
+  };
+
   const sendMessage = async (e, overrideText) => {
     if (e) e.preventDefault();
     const text = (overrideText ?? input).trim();
@@ -180,11 +202,8 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      // Pass the last 10 messages as history context for the AI
-      const historyContext = messages.slice(-10).map(m => ({
-        role: m.role,
-        content: m.content
-      }));
+      // Keep memory around the last ~10 user turns with nearby assistant replies.
+      const historyContext = buildHistoryContext(messages, 10);
 
       const { answer, sources } = await searchSchemes(text, historyContext, lang);
       const assistantMsg = {
