@@ -81,14 +81,17 @@ function MessageBubble({ msg, onCopy }) {
             <ReactMarkdown
               className="prose"
               components={{
-                a: (props) => (
-                  <a
-                    {...props}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline break-all"
-                  />
-                ),
+                a: ({ node, className, ...props }) => {
+                  void node;
+                  return (
+                    <a
+                      {...props}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`text-blue-600 hover:underline break-all ${className ?? ""}`.trim()}
+                    />
+                  );
+                },
               }}
             >
               {content}
