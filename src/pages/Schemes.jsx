@@ -113,7 +113,7 @@ export default function Schemes() {
       const matchRegion = selectedRegions.length === 0 || selectedRegions.includes(s.region) || (s.region === 'केंद्र' && selectedRegions.includes('Central')) || (s.region === 'छत्तीसगढ़' && selectedRegions.includes('Chhattisgarh'));
       return matchSearch && matchCat && matchRegion;
     });
-  }, [search, selectedCats, selectedRegions, ACTIVE_SCHEMES]);
+  }, [search, selectedCats, selectedRegions, ACTIVE_SCHEMES, t]);
 
   const toggleFilter = (arr, setArr, val) =>
     setArr(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);

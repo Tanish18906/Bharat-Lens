@@ -48,12 +48,6 @@ export default function Verify() {
     }, 800);
   };
 
-  const handleClear = () => {
-    setInput("");
-    setResult(null);
-    setChecked(false);
-  };
-
   const handleExample = (val) => {
     setInput(val);
     setResult(null);
@@ -93,16 +87,19 @@ export default function Verify() {
         marginBottom: 24,
       }}>
         <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-          {[{ icon: Link2, label: t("verUrlLink") }, { icon: MessageSquare, label: t("verSmsWa") }].map(({ icon: Icon, label }) => (
-            <div key={label} style={{
+          {[{ icon: Link2, label: t("verUrlLink") }, { icon: MessageSquare, label: t("verSmsWa") }].map((item) => {
+            const Icon = item.icon;
+            return (
+            <div key={item.label} style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "6px 14px", borderRadius: 99,
               background: "var(--border-subtle)", fontSize: 12, fontWeight: 600,
               color: "var(--text-muted)",
             }}>
-              <Icon size={13} /> {label}
+              <Icon size={13} /> {item.label}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <form onSubmit={handleVerify}>

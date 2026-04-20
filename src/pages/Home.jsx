@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Search, ArrowRight, Wheat, HeartPulse, GraduationCap,
   Briefcase, MessageSquare, List, ShieldCheck, Zap,
@@ -178,11 +178,13 @@ export default function Home() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
-          {CATEGORIES.map(({ labelKey, icon: Icon, color, bg, query: q }) => (
+          {CATEGORIES.map((category) => {
+            const Icon = category.icon;
+            return (
             <button
-              key={labelKey}
+              key={category.labelKey}
               className="card-hover"
-              onClick={() => navigate(`/schemes?category=${q}`)}
+              onClick={() => navigate(`/schemes?category=${category.query}`)}
               style={{
                 background: "white", border: "1px solid var(--border)",
                 borderRadius: 18, padding: "28px 24px",
@@ -192,22 +194,23 @@ export default function Home() {
             >
               <div style={{
                 width: 54, height: 54, borderRadius: 16,
-                background: bg, display: "flex", alignItems: "center", justifyContent: "center",
+                background: category.bg, display: "flex", alignItems: "center", justifyContent: "center",
                 marginBottom: 16,
               }}>
-                <Icon size={26} color={color} />
+                <Icon size={26} color={category.color} />
               </div>
               <div style={{ fontWeight: 700, fontSize: 17, color: "var(--text-heading)", marginBottom: 6 }}>
-                {t(labelKey)}
+                {t(category.labelKey)}
               </div>
               <div style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
-                {t('findAll')} {t(labelKey)} {t('schemes')}
+                {t('findAll')} {t(category.labelKey)} {t('schemes')}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, color, fontSize: 13, fontWeight: 600 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, color: category.color, fontSize: 13, fontWeight: 600 }}>
                 {t('explore')} <ChevronRight size={14} />
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       </section>
 

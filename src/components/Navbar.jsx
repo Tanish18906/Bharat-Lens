@@ -82,10 +82,12 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <nav className="desktop-nav" style={{ alignItems: "center", gap: 4 }}>
-            {NAV_LINKS.map(({ to, labelKey, icon: Icon }) => (
+            {NAV_LINKS.map((link) => {
+              const Icon = link.icon;
+              return (
               <Link
-                key={to}
-                to={to}
+                key={link.to}
+                to={link.to}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -96,15 +98,16 @@ export default function Navbar() {
                   fontSize: 14,
                   textDecoration: "none",
                   transition: "all 0.15s ease",
-                  background: isActive(to) ? "var(--saffron-pale)" : "transparent",
-                  color: isActive(to) ? "var(--saffron)" : "var(--text)",
-                  borderBottom: isActive(to) ? "2px solid var(--saffron)" : "2px solid transparent",
+                  background: isActive(link.to) ? "var(--saffron-pale)" : "transparent",
+                  color: isActive(link.to) ? "var(--saffron)" : "var(--text)",
+                  borderBottom: isActive(link.to) ? "2px solid var(--saffron)" : "2px solid transparent",
                 }}
               >
                 <Icon size={15} />
-                {t(labelKey)}
+                {t(link.labelKey)}
               </Link>
-            ))}
+              );
+            })}
 
             {/* Language Toggle */}
             <button
@@ -161,10 +164,12 @@ export default function Navbar() {
               gap: 4,
             }}
           >
-            {NAV_LINKS.map(({ to, labelKey, icon: Icon }) => (
+            {NAV_LINKS.map((link) => {
+              const Icon = link.icon;
+              return (
               <Link
-                key={to}
-                to={to}
+                key={link.to}
+                to={link.to}
                 onClick={() => setMobileOpen(false)}
                 style={{
                   display: "flex",
@@ -175,14 +180,15 @@ export default function Navbar() {
                   textDecoration: "none",
                   fontWeight: 500,
                   fontSize: 15,
-                  background: isActive(to) ? "var(--saffron-pale)" : "transparent",
-                  color: isActive(to) ? "var(--saffron)" : "var(--text-heading)",
+                  background: isActive(link.to) ? "var(--saffron-pale)" : "transparent",
+                  color: isActive(link.to) ? "var(--saffron)" : "var(--text-heading)",
                 }}
               >
                 <Icon size={18} />
-                {t(labelKey)}
+                {t(link.labelKey)}
               </Link>
-            ))}
+              );
+            })}
             <div style={{ marginTop: 8, paddingTop: 12, borderTop: "1px solid var(--border-subtle)" }}>
               <button onClick={toggleLanguage} style={{
                 display: "flex", alignItems: "center", gap: 8,
@@ -217,10 +223,12 @@ export default function Navbar() {
           alignItems: "center",
         }}
       >
-        {NAV_LINKS.map(({ to, labelKey, icon: Icon }) => (
+        {NAV_LINKS.map((link) => {
+          const Icon = link.icon;
+          return (
           <Link
-            key={to}
-            to={to}
+            key={link.to}
+            to={link.to}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -229,16 +237,17 @@ export default function Navbar() {
               padding: "4px 16px",
               borderRadius: 10,
               textDecoration: "none",
-              color: isActive(to) ? "var(--saffron)" : "var(--text-muted)",
+              color: isActive(link.to) ? "var(--saffron)" : "var(--text-muted)",
               fontSize: 10,
               fontWeight: 600,
               transition: "color 0.15s",
             }}
           >
-            <Icon size={20} strokeWidth={isActive(to) ? 2.5 : 1.8} />
-            {t(labelKey)}
+            <Icon size={20} strokeWidth={isActive(link.to) ? 2.5 : 1.8} />
+            {t(link.labelKey)}
           </Link>
-        ))}
+          );
+        })}
       </nav>
     </>
   );

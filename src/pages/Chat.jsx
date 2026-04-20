@@ -20,10 +20,12 @@ const SUGGESTED_QUESTIONS = [
 function MessageBubble({ msg, onCopy }) {
   const { t } = useLanguage();
   const isUser = msg.role === "user";
+  const content = typeof msg.content === "string" ? msg.content : String(msg.content ?? "");
+  const sources = Array.isArray(msg.sources) ? msg.sources : [];
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(msg.content);
+    navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     if (onCopy) onCopy();
@@ -72,16 +74,16 @@ function MessageBubble({ msg, onCopy }) {
             wordBreak: "break-word",
           }}
         >
-          <ReactMarkdown className="prose">{msg.content}</ReactMarkdown>
+          {content}
         </div>
 
         {/* Source labels */}
-        {msg.sources && msg.sources.length > 0 && (
+        {sources.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-            {msg.sources.map((src, i) => (
+            {sources.map((src, i) => (
               <div key={i} className="source-tag">
-                📋 {src.name}
-                {src.url && (
+                📋 {src?.name || "Government Scheme"}
+                {src?.url && (
                   <a href={src.url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", display: "flex" }}>
                     <ExternalLink size={10} />
                   </a>
@@ -147,31 +149,18 @@ function ErrorMessage({ error, onRetry }) {
 export default function Chat() {
   const { lang, t } = useLanguage();
   const [searchParams] = useSearchParams();
-  const initialQuery   = searchParams.get("q") || "";
+  const initialQuery = searchParams.get("q") || "";
 
-  const [messages,     setMessages]     = useState([]);
-  const [input,        setInput]        = useState(initialQuery);
-  const [loading,      setLoading]      = useState(false);
-  const [listening,    setListening]    = useState(false);
-  const [error,        setError]        = useState(null);
-  const [lastQuery,    setLastQuery]    = useState("");
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState(initialQuery);
+  const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [error, setError] = useState(null);
+  const [lastQuery, setLastQuery] = useState("");
 
   const messagesEndRef = useRef(null);
-  const inputRef       = useRef(null);
+  const inputRef = useRef(null);
   const recognitionRef = useRef(null);
-
-  // Auto-send if query from URL
-  useEffect(() => {
-    if (initialQuery) {
-      sendMessage(null, initialQuery);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
 
   const now = () =>
     new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
@@ -199,8 +188,8 @@ export default function Chat() {
       const { answer, sources } = await searchSchemes(text, historyContext, lang);
       const assistantMsg = {
         role: "assistant",
-        content: answer,
-        sources,
+        content: typeof answer === "string" ? answer : t('chatErrorMsg'),
+        sources: Array.isArray(sources) ? sources : [],
         time: now(),
       };
       setMessages(prev => [...prev, assistantMsg]);
@@ -210,6 +199,20 @@ export default function Chat() {
       setLoading(false);
     }
   };
+
+  // Auto-send if query from URL
+  useEffect(() => {
+    if (initialQuery) {
+      const timeoutId = window.setTimeout(() => sendMessage(null, initialQuery), 0);
+      return () => window.clearTimeout(timeoutId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   const handleSuggestion = (q) => {
     setInput(q);
@@ -248,7 +251,7 @@ export default function Chat() {
     };
 
     recognition.onerror = () => setListening(false);
-    recognition.onend   = () => setListening(false);
+    recognition.onend = () => setListening(false);
 
     recognitionRef.current = recognition;
     recognition.start();

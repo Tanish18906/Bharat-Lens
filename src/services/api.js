@@ -8,7 +8,6 @@ const OPENAI_API_KEY  = import.meta.env.VITE_OPENAI_API_KEY;
 const PINECONE_API_KEY = import.meta.env.VITE_PINECONE_API_KEY;
 const PINECONE_HOST    = import.meta.env.VITE_PINECONE_HOST; // e.g. https://scheme-data-xxxxx.svc.region.pinecone.io
 
-const PINECONE_INDEX   = "scheme-data";
 const EMBEDDING_MODEL  = "text-embedding-3-small";
 const CHAT_MODEL       = "gpt-4o-mini";
 
@@ -97,7 +96,8 @@ export async function generateRAGResponse(userQuery, contextChunks, history = []
     })
     .join("\n\n");
 
-  const languageInstruction = "VERY IMPORTANT: You MUST respond in the EXACT same language and script the user uses in their message. If they write in English, reply in English. If they write in pure Hindi (Devanagari script), reply in pure Hindi. If they write in Hinglish (Hindi words in English alphabet), reply in Hinglish.";
+  const appLanguage = lang === 'hi' ? 'Hindi' : 'English';
+  const languageInstruction = `VERY IMPORTANT: You MUST respond in the EXACT same language and script the user uses in their message. If they write in English, reply in English. If they write in pure Hindi (Devanagari script), reply in pure Hindi. If they write in Hinglish (Hindi words in English alphabet), reply in Hinglish. If the user's language is ambiguous, prefer ${appLanguage}.`;
 
   const systemPrompt = `You are "Bharat Lens AI," a helpful and trusted assistant for Indian citizens seeking information about Central and Chhattisgarh state government schemes and benefits.
 
@@ -186,7 +186,7 @@ export function verifyLink(input) {
   try {
     urlObj = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
     isUrl = true;
-  } catch (_) {
+  } catch {
     isUrl = false;
   }
 
