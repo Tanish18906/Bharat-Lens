@@ -128,13 +128,11 @@ export async function queryPinecone(embedding, topK = 3) {
   return data.matches || [];
 }
 
+// 3. Generate RAG Response with GPT-4o Mini (Streaming)
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. Generate RAG Response with GPT-4o Mini
-// ─────────────────────────────────────────────────────────────────────────────
-export async function generateRAGResponse(userQuery, contextChunks, history = [], lang = 'en') {
+export async function generateRAGResponse(userQuery, contextChunks, history = [], lang = 'en', onChunk) {
   if (!OPENAI_API_KEY) throw new Error("VITE_OPENAI_API_KEY is not set in .env");
 
-  // Build context string from Pinecone matches
   const contextText = contextChunks
     .map((match, i) => {
       const meta = match.metadata || {};
@@ -192,7 +190,8 @@ ${contextText || "No relevant schemes found in the database for this query."}`;
         { role: "user",      content: userQuery    },
       ],
       temperature: 0.3,
-      max_tokens: 800,
+      max_tokens: 1200,
+      stream: true, // Enable streaming
     }),
   });
 
@@ -201,17 +200,77 @@ ${contextText || "No relevant schemes found in the database for this query."}`;
     throw new Error(`GPT-4o Mini error: ${err.error?.message || response.statusText}`);
   }
 
-  const data = await response.json();
-  return data.choices[0].message.content;
+  if (!response.body) {
+    throw new Error("OpenAI streaming response body is empty.");
+  }
+
+  // Handle stream (SSE)
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let fullText = "";
+  let buffer = "";
+
+  const processEvent = (rawEvent) => {
+    const normalized = rawEvent.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const lines = normalized.split("\n");
+    const dataLines = [];
+
+    for (const line of lines) {
+      if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+    }
+
+    if (dataLines.length === 0) return false;
+    const data = dataLines.join("\n").trim();
+    if (!data) return false;
+    if (data === "[DONE]") return true;
+
+    try {
+      const json = JSON.parse(data);
+      const content = json.choices?.[0]?.delta?.content || "";
+      if (content) {
+        fullText += content;
+        if (onChunk) onChunk(fullText, content);
+      }
+    } catch {
+      // Ignore malformed event payloads and keep streaming.
+    }
+
+    return false;
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (value) {
+      buffer += decoder.decode(value, { stream: !done });
+    }
+
+    let eventBoundary = buffer.indexOf("\n\n");
+    while (eventBoundary !== -1) {
+      const rawEvent = buffer.slice(0, eventBoundary);
+      buffer = buffer.slice(eventBoundary + 2);
+
+      const isDoneEvent = processEvent(rawEvent);
+      if (isDoneEvent) return fullText;
+      eventBoundary = buffer.indexOf("\n\n");
+    }
+
+    if (done) break;
+  }
+
+  if (buffer.trim()) {
+    processEvent(buffer);
+  }
+
+  return fullText;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. Master Search Function (Embedding → Pinecone → GPT-4o Mini)
+// 4. Master Search Function (Embedding → Pinecone → GPT-4o Mini Streaming)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function searchSchemes(query, history = [], lang = 'en') {
+export async function searchSchemes(query, history = [], lang = 'en', onChunk) {
   // Step 1: Embed the query
-  // To handle follow-up questions (like "what about eligibility?"), we append the last 
-  // user message to the current query so Pinecone gets the entity context (e.g. "PM Kisan").
   let searchQuery = query;
   const lastUserMsg = [...history].reverse().find(m => m.role === 'user');
   if (lastUserMsg) {
@@ -232,8 +291,8 @@ export async function searchSchemes(query, history = [], lang = 'en') {
       url:   m.metadata?.official_url || null,
     }));
 
-  // Step 4: Generate RAG response
-  const answer = await generateRAGResponse(query, matches, history, lang);
+  // Step 4: Generate RAG response (Streaming)
+  const answer = await generateRAGResponse(query, matches, history, lang, onChunk);
 
   return { answer, sources };
 }

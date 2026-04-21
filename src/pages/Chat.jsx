@@ -265,21 +265,54 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      // Keep memory around the last ~10 user turns with nearby assistant replies.
       const historyContext = buildHistoryContext(messages, 10);
+      let assistantMessageAdded = false;
 
       const { answer, sources } = await withTimeout(
-        searchSchemes(text, historyContext, lang),
+        searchSchemes(text, historyContext, lang, (fullText) => {
+          setMessages(prev => {
+            if (!assistantMessageAdded) {
+              assistantMessageAdded = true;
+              return [
+                ...prev,
+                {
+                  role: "assistant",
+                  content: fullText,
+                  sources: [],
+                  time: now(),
+                  isStreaming: true,
+                },
+              ];
+            }
+            const newMsgs = [...prev];
+            const lastMsg = newMsgs[newMsgs.length - 1];
+            if (lastMsg && lastMsg.role === "assistant") {
+              lastMsg.content = fullText;
+            }
+            return newMsgs;
+          });
+        }),
         REQUEST_TIMEOUT_MS
       );
-      const safeAnswer = typeof answer === "string" ? answer.slice(0, MAX_ASSISTANT_CHARS) : "";
-      const assistantMsg = {
-        role: "assistant",
-        content: safeAnswer || t('chatErrorMsg'),
-        sources: Array.isArray(sources) ? sources : [],
-        time: now(),
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+
+      // Final update to attach sources and remove streaming flag
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        const lastMsg = newMsgs[newMsgs.length - 1];
+        if (lastMsg && lastMsg.role === "assistant") {
+          lastMsg.content = answer.slice(0, MAX_ASSISTANT_CHARS) || t('chatErrorMsg');
+          lastMsg.sources = Array.isArray(sources) ? sources : [];
+          delete lastMsg.isStreaming;
+        } else {
+          newMsgs.push({
+            role: "assistant",
+            content: answer.slice(0, MAX_ASSISTANT_CHARS) || t('chatErrorMsg'),
+            sources: Array.isArray(sources) ? sources : [],
+            time: now(),
+          });
+        }
+        return newMsgs;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : t('chatErrorMsg'));
     } finally {
@@ -525,7 +558,7 @@ export default function Chat() {
           </RenderErrorBoundary>
         ))}
 
-        {loading && (
+        {loading && !messages[messages.length - 1]?.isStreaming && (
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <div style={{
               width: 34, height: 34, borderRadius: 10, flexShrink: 0,
