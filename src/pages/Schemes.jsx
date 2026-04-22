@@ -132,7 +132,6 @@ export default function Schemes() {
         {/* ── Sidebar ── */}
         <aside style={{
           width: 240, flexShrink: 0,
-          display: "none", // hidden on mobile by default; shown via media doesn't work with inline
         }} className="desktop-nav" >
           <SidebarContent
             selectedCats={selectedCats}
@@ -175,7 +174,6 @@ export default function Schemes() {
               className="mobile-nav"
               onClick={() => setSidebarOpen(o => !o)}
               style={{
-                display: "flex",
                 background: activeFilterCount > 0 ? "var(--saffron)" : "white",
                 border: "1px solid var(--border)", borderRadius: 10,
                 padding: "10px 14px", cursor: "pointer",
